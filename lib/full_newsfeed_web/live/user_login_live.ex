@@ -3,7 +3,7 @@ defmodule FullNewsfeedWeb.UserLoginLive do
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto max-w-sm">
+    <div class="mx-auto max-w-sm text-zinc-200">
       <.header class="text-center">
         Sign in to account
         <:subtitle>

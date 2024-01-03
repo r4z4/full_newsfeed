@@ -17,7 +17,9 @@ defmodule FullNewsfeed.Application do
       # Start Finch
       {Finch, name: FullNewsfeed.Finch},
       # Start the Endpoint (http/https)
-      FullNewsfeedWeb.Endpoint
+      FullNewsfeedWeb.Endpoint,
+      FullNewsfeed.ThinWrapper,
+      {Task.Supervisor, name: FullNewsfeed.TaskSupervisor}
       # Start a worker by calling: FullNewsfeed.Worker.start_link(arg)
       # {FullNewsfeed.Worker, arg}
     ]

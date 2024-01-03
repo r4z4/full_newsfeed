@@ -20,12 +20,12 @@ Repo.insert_all(User, [
   %{id: "a9f44567-e031-44f1-aae6-972d7aabbb45", username: "admin", email: "admin@admin.com", role: :admin, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()},
   %{id: "b5f44567-e031-44f1-aae6-972d7aabbb45", username: "jimbo", email: "jimbo@jimbo.com", role: :subadmin, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()},
   %{id: "df18d5eb-e99e-4481-9e16-4d2f434a3711", username: "aaron", email: "aaron@aaron.com", role: :subadmin, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()},
-  %{id: "67bbf29b-7ee9-48a4-b2fb-9a113e26ac91", username: "mn_voter", email: "mn_voter@example.com", role: :reader, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()},
-  %{id: "459180af-49aa-48df-92e2-547be9283ac4", username: "wi_voter", email: "wi_voter@example.com", role: :reader, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()},
-  %{id: "cf1ffc43-58a2-40e2-b08a-86bb2089ba64", username: "ia_voter", email: "ia_voter@example.com", role: :reader, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()},
-  %{id: "4a501cb1-6e1c-45c1-8397-9bbd4a312044", username: "ca_voter", email: "ca_voter@example.com", role: :reader, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()},
-  %{id: "549a7ba0-ea59-4333-bd01-eb4b3e4420f8", username: "il_voter", email: "il_voter@example.com", role: :reader, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()},
-  %{id: "b2f44567-e031-44f1-aae6-972d7aabbb45", username: "tx_voter", email: "tx_voter@example.com", role: :reader, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()}
+  %{id: "67bbf29b-7ee9-48a4-b2fb-9a113e26ac91", username: "mn_user", email: "mn_user@example.com", role: :reader, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()},
+  %{id: "459180af-49aa-48df-92e2-547be9283ac4", username: "wi_user", email: "wi_user@example.com", role: :reader, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()},
+  %{id: "cf1ffc43-58a2-40e2-b08a-86bb2089ba64", username: "ia_user", email: "ia_user@example.com", role: :reader, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()},
+  %{id: "4a501cb1-6e1c-45c1-8397-9bbd4a312044", username: "ca_user", email: "ca_user@example.com", role: :reader, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()},
+  %{id: "549a7ba0-ea59-4333-bd01-eb4b3e4420f8", username: "il_user", email: "il_user@example.com", role: :reader, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()},
+  %{id: "b2f44567-e031-44f1-aae6-972d7aabbb45", username: "tx_user", email: "tx_user@example.com", role: :reader, hashed_password: Bcrypt.hash_pwd_salt(password), confirmed_at: NaiveDateTime.local_now(), inserted_at: NaiveDateTime.local_now()}
 ])
 
 # Repo.insert_all(Hold, [

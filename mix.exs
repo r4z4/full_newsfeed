@@ -49,6 +49,7 @@ defmodule FullNewsfeed.MixProject do
       {:finch, "~> 0.13"},
       {:telemetry_metrics, "~> 0.6"},
       {:telemetry_poller, "~> 1.0"},
+      {:logger_file_backend, "~> 0.0.10"},
       {:gettext, "~> 0.20"},
       {:jason, "~> 1.2"},
       {:dotenv_parser, "~> 2.0"},
