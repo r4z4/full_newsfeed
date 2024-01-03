@@ -68,6 +68,8 @@ defmodule FullNewsfeedWeb.Router do
       on_mount: [{FullNewsfeedWeb.UserAuth, :ensure_authenticated}] do
       live "/user/settings", UserSettingsLive, :edit
       live "/user/settings/confirm_email/:token", UserSettingsLive, :confirm_email
+
+      live "/home", HomeLive
     end
   end
 
