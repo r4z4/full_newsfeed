@@ -3,12 +3,14 @@ defmodule FullNewsfeedWeb.HomeLive do
   require Logger
 
   alias FullNewsfeed.Account
+  import Ecto.Query, only: [from: 2]
   # alias FullNewsfeed.Core.TopicHelpers
   # alias FullNewsfeedWeb.Components.StateSnapshot
   # alias FullNewsfeedWeb.Components.PresenceDisplay
   alias Ecto.UUID
   alias FullNewsfeed.Repo
   alias FullNewsfeed.Items.Beer
+  alias FullNewsfeed.Items.HeadlineList
   alias FullNewsfeed.Core.{Utils, Hold}
 
   def mount(_params, _session, socket) do
@@ -33,7 +35,7 @@ defmodule FullNewsfeedWeb.HomeLive do
      |> assign(:alert, nil)
      |> assign(:floor_actions, Task.await(floor_task, 10000))
      |> assign(:bank_data, nil)
-     |> assign(:cc_data, nil)
+     |> assign(:headlines_data, nil)
      |> assign(:beer_data, nil)}
   end
 
@@ -70,12 +72,11 @@ defmodule FullNewsfeedWeb.HomeLive do
           <button
             type="button"
             phx-click="service_casted"
-            phx-value-entity={:credit_card}
+            phx-value-entity={:headlines}
             value={:val_test}
             class="inline-block rounded border-2 border-success w-3/3 px-2 pb-[6px] pt-2 text-xs font-medium uppercase leading-normal text-success transition duration-150 ease-in-out hover:border-success-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-success-600 focus:border-success-600 focus:text-success-600 focus:outline-none focus:ring-0 active:border-success-700 active:text-success-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10"
           >
-          <svg height="40px" width="40px" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--noto" preserveAspectRatio="xMidYMid meet" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="M116.34 101.95H11.67c-4.2 0-7.63-3.43-7.63-7.63V33.68c0-4.2 3.43-7.63 7.63-7.63h104.67c4.2 0 7.63 3.43 7.63 7.63v60.64c0 4.2-3.43 7.63-7.63 7.63z" fill="#ffc107"></path><path fill="#424242" d="M4.03 38.88h119.95v16.07H4.03z"></path><path d="M114.2 74.14H13.87c-.98 0-1.79-.8-1.79-1.79v-8.41c0-.98.8-1.79 1.79-1.79H114.2c.98 0 1.79.8 1.79 1.79v8.41c-.01.98-.81 1.79-1.79 1.79z" fill="#ffffff"></path><path d="M23.98 70.49c.56-1.08.71-2.34 1.21-3.45c.5-1.11 1.59-2.14 2.79-1.95c1.11.18 1.8 1.29 2.21 2.33c.57 1.45.88 3 .92 4.56c.01.32-.01.67-.22.92c-.37.42-1.13.21-1.42-.27c-.29-.48-.22-1.09-.09-1.64c.62-2.55 2.62-4.72 5.11-5.54c.26-.09.53-.16.8-.11c.58.11.9.71 1.16 1.23c.61 1.19 1.35 2.32 2.2 3.35c.34.42.73.83 1.25.99c1.71.5 2.7-2.02 4.35-2.69c1.98-.8 3.91 1.29 6.01 1.68c3.07.57 4.7-1.82 7.39-2.43c.36-.08.75-.13 1.11-.03c.66.19 1.07.82 1.46 1.39c.91 1.34 2.21 2.66 3.83 2.67c1.03.01 1.98-.52 2.92-.97c3.33-1.59 7.26-2.25 10.74-1.03" fill="none" stroke="#424242" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path></g></svg>
-          </button>
+          <svg height="40px" width="40px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 392.598 392.598" xml:space="preserve" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path style="fill:#FFFFFF;" d="M359.855,21.786H32.743c-6.012,0-10.925,4.848-10.925,10.925v327.111 c0,6.012,4.848,10.925,10.925,10.925h327.111c6.012,0,10.925-4.848,10.925-10.925V32.711 C370.78,26.699,365.867,21.786,359.855,21.786z"></path> <rect x="43.604" y="43.055" style="fill:#FFC10D;" width="305.325" height="77.576"></rect> <g> <path style="fill:#194F82;" d="M326.497,170.408H66.101c-6.012,0-10.925-4.848-10.925-10.925c0-6.012,4.848-10.925,10.925-10.925 h260.331c6.012,0,10.925,4.848,10.925,10.925C337.422,165.495,332.509,170.408,326.497,170.408z"></path> <path style="fill:#194F82;" d="M174.384,207.644H66.166c-6.012,0-10.925-4.848-10.925-10.925c0-6.012,4.848-10.925,10.925-10.925 h108.154c6.012,0,10.925,4.848,10.925,10.925C185.244,202.667,180.396,207.644,174.384,207.644z"></path> <path style="fill:#194F82;" d="M174.384,251.41H66.166c-6.012,0-10.925-4.848-10.925-10.925c0-6.077,4.848-10.925,10.925-10.925 h108.154c6.012,0,10.925,4.848,10.925,10.925C185.244,246.562,180.396,251.41,174.384,251.41z"></path> <path style="fill:#194F82;" d="M174.384,295.305H66.166c-6.012,0-10.925-4.848-10.925-10.925s4.848-10.925,10.925-10.925h108.154 c6.012,0,10.925,4.848,10.925,10.925C185.244,290.392,180.396,295.305,174.384,295.305z"></path> <path style="fill:#194F82;" d="M174.384,339.135H66.166c-6.012,0-10.925-4.848-10.925-10.925c0-6.012,4.848-10.925,10.925-10.925 h108.154c6.012,0,10.925,4.848,10.925,10.925S180.396,339.135,174.384,339.135z"></path> <path style="fill:#194F82;" d="M320.679,207.644H212.525c-6.012,0-10.925-4.848-10.925-10.925c0-6.012,4.848-10.925,10.925-10.925 h108.154c6.012,0,10.925,4.848,10.925,10.925C331.604,202.667,326.756,207.644,320.679,207.644z"></path> <path style="fill:#194F82;" d="M320.679,251.41H212.525c-6.012,0-10.925-4.848-10.925-10.925c0-6.077,4.848-10.925,10.925-10.925 h108.154c6.012,0,10.925,4.848,10.925,10.925C331.604,246.562,326.756,251.41,320.679,251.41z"></path> <path style="fill:#194F82;" d="M320.679,295.305H212.525c-6.012,0-10.925-4.848-10.925-10.925s4.848-10.925,10.925-10.925h108.154 c6.012,0,10.925,4.848,10.925,10.925C331.604,290.392,326.756,295.305,320.679,295.305z"></path> <path style="fill:#194F82;" d="M320.679,339.135H212.525c-6.012,0-10.925-4.848-10.925-10.925c0-6.012,4.848-10.925,10.925-10.925 h108.154c6.012,0,10.925,4.848,10.925,10.925S326.756,339.135,320.679,339.135z"></path> <polygon style="fill:#194F82;" points="103.596,91.41 71.984,49.972 58.537,49.972 58.537,114.36 72.889,114.36 72.889,74.02 103.596,114.36 117.947,114.36 117.947,49.972 103.596,49.972 "></polygon> <polygon style="fill:#194F82;" points="148.137,88.307 176.97,88.307 176.97,76.024 148.137,76.024 148.137,62.707 180.202,62.707 180.202,49.972 133.786,49.972 133.786,114.36 181.236,114.36 181.236,101.689 148.137,101.689 "></polygon> <polygon style="fill:#194F82;" points="251.96,87.014 240.582,49.972 225.584,49.972 214.141,87.014 201.406,49.972 185.891,49.972 208.323,114.36 218.99,114.36 233.018,69.624 247.176,114.36 257.778,114.36 280.275,49.972 264.76,49.972 "></polygon> <path style="fill:#194F82;" d="M314.731,75.701c-7.887-2.069-14.545-3.491-14.222-8.404c0.259-3.943,2.844-5.947,7.758-6.271 c5.947,0,11.766,2.069,17.325,6.335l7.24-10.537c-6.659-5.43-14.675-8.275-24.113-8.469c-13.899,0.129-22.885,7.37-23.014,19.071 c-0.065,11.636,7.37,17.648,21.657,20.428c6.335,1.422,11.96,3.168,11.895,8.016c-0.323,4.331-3.556,6.077-8.469,6.335 c-5.883,0-12.283-3.038-19.265-9.115l-8.598,10.537c8.21,7.564,17.39,11.378,27.604,11.378c13.964-0.711,22.82-6.271,23.596-19.459 C334.836,84.558,326.95,78.804,314.731,75.701z"></path> <path style="fill:#194F82;" d="M359.855,0H32.743C14.707,0,0.032,14.675,0.032,32.711v327.111 c0,18.101,14.675,32.776,32.711,32.776h327.111c18.036,0,32.711-14.675,32.711-32.711V32.711C392.566,14.675,377.891,0,359.855,0z M370.78,359.822c0,6.012-4.848,10.925-10.925,10.925H32.743c-6.012,0-10.925-4.848-10.925-10.925V32.711 c0-6.012,4.848-10.925,10.925-10.925h327.111c6.012,0,10.925,4.848,10.925,10.925V359.822L370.78,359.822z"></path> </g> </g></svg>          </button>
         </div>
 
         <div class="basis-1/3 flex flex-col items-center justify-center">
@@ -96,7 +97,7 @@ defmodule FullNewsfeedWeb.HomeLive do
           <FullNewsfeedWeb.MainComponents.bank_card bank_data={@bank_data} />
         </div>
         <div class="basis-1/3 flex flex-col items-center justify-center">
-          <FullNewsfeedWeb.MainComponents.cc_card cc_data={@cc_data} />
+          <FullNewsfeedWeb.MainComponents.headlines_card headlines_data={@headlines_data} />
         </div>
         <div class="basis-1/3 flex flex-col items-center justify-center">
           <FullNewsfeedWeb.MainComponents.beer_card beer_data={@beer_data} />
@@ -158,6 +159,28 @@ defmodule FullNewsfeedWeb.HomeLive do
     body |> Beer.new()
   end
 
+  def fetch_headlines do
+    source = "associated-press"
+    {:ok, resp} =
+      Finch.build(
+        :get,
+        "https://newsapi.org/v2/top-headlines?sources=#{source}&apiKey=#{System.fetch_env!("NEWS_API_KEY")}",
+        [{"Accept", "application/json"}]
+        )
+        |> Finch.request(FullNewsfeed.Finch)
+
+    IO.inspect(resp, label: "Resp")
+    # {"status": "ok","totalResults": 10,"articles": [..]}
+
+    {:ok, body} = Jason.decode(resp.body)
+    articles = body["articles"]
+    IO.inspect(articles, label: "Articles")
+    articles |> HeadlineList.new()
+  end
+
+
+
+
   @impl true
   def handle_event("service_casted", params, socket) do
     IO.inspect(socket, label: "Socket")
@@ -165,7 +188,7 @@ defmodule FullNewsfeedWeb.HomeLive do
       case String.to_existing_atom(params["entity"]) do
         # GenServer.cast String.to_existing_atom(params["castto"]), {String.to_existing_atom(params["op"]), String.to_existing_atom(params["res"])}
         :bank -> fetch_bank()
-        :credit_card -> "Credit Card Data"
+        :headlines -> fetch_headlines()
         :beer -> fetch_beer()
         _ -> raise "No ID Match for find_nearest()"
       end
@@ -179,8 +202,21 @@ defmodule FullNewsfeedWeb.HomeLive do
   end
 
   def save_beer(beer_struct, user_id) do
-    item_hold = %Hold{slug: UUID.generate(), user_id: user_id, hold_cat: :beer, type: :favorite, hold_cat_id: UUID.generate(), active: true}
-    Repo.insert(item_hold)
+    # item_hold = %Hold{slug: UUID.generate(), user_id: user_id, hold_cat: :beer, type: :favorite, hold_cat_id: UUID.generate(), active: true, updated_at: nil}
+    attrs = %{slug: UUID.generate(), user_id: user_id, hold_cat: :beer, type: :favorite, hold_cat_id: UUID.generate(), active: true, updated_at: nil}
+    changeset = Hold.changeset(%Hold{}, attrs)
+    # Check for existing. Then update/create_new
+    case Repo.exists?(from h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == :beer) do
+      true ->
+        IO.puts("It Exists")
+        from(h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == :beer)
+        |> Repo.update_all(set: [hold_cat_id: UUID.generate()])
+      false ->
+        IO.puts("It Does Not Exist")
+        Repo.insert(changeset)
+    end
+    # Find other users who share the same :favorite, and send them a message
+    # scan_and_send_update()
   end
 
   def save_bank(bank_struct) do
@@ -193,18 +229,17 @@ defmodule FullNewsfeedWeb.HomeLive do
       case String.to_existing_atom(params["entity"]) do
         # GenServer.cast String.to_existing_atom(params["castto"]), {String.to_existing_atom(params["op"]), String.to_existing_atom(params["res"])}
         :bank -> save_bank(socket.assigns.bank_data)
-        :credit_card -> {:ok, "Credit Card Data"}
+        :headlines -> {:ok, "Credit Card Data"}
         :beer -> save_beer(socket.assigns.beer_data, socket.assigns.current_user.id)
         _ -> raise "No ID Match for save_item()"
       end
     msg =
       case res do
-        {:ok, _} -> "Record Updated"
-        {:error, err} -> "Error: #{err}"
+        {_id, nil} -> "Record Updated"
+        {:ok, _record} -> "Record Inserted"
+        {:error, changeset} -> "Error: #{changeset.errors}"
       end
-    {:noreply,
-      socket
-      |> assign(:alert, msg)}
+    {:noreply, put_flash(socket, :info, msg)}
   end
 
   @impl true

@@ -17,10 +17,10 @@ defmodule FullNewsfeed.Core.Hold do
   end
 
   @doc false
-  def changeset(holds, attrs) do
-    holds
-    |> cast(attrs, [:id, :user_id, :type, :hold_cat_id, :hold_cat])
-    |> validate_required([:id, :user_id, :type, :hold_cat_id, :hold_cat])
-    |> unique_constraint(:id)
+  def changeset(hold, attrs) do
+    hold
+    |> cast(attrs, [:slug, :user_id, :type, :hold_cat_id, :hold_cat])
+    |> validate_required([:slug, :user_id, :type, :hold_cat_id, :hold_cat])
+    |> unique_constraint(:slug)
   end
 end

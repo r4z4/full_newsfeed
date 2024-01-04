@@ -52,17 +52,18 @@ defmodule FullNewsfeedWeb.MainComponents do
     """
   end
 
-  def cc_card(assigns) do
+  def headlines_card(assigns) do
     ~H"""
       <div class="relative flex">
-        <div class="justify-self-start"><h4>Credit Card</h4></div>
-        <div class="justify-self-end"><span class="text-sm"><%= if @cc_data do %>🟢<% else %>🔴<% end %></span></div>
-        <%= if @cc_data do %>
-          <ul class="self-center">
-            <li><%= String.capitalize(@cc_data.uid) %></li>
-            <li><%= String.capitalize(@cc_data.bank_name) %></li>
-            <li><%= String.capitalize(@cc_data.account_number) %></li>
-          </ul>
+        <div class="justify-self-start"><h4>Headlines</h4></div>
+        <div class="justify-self-end"><span class="text-sm"><%= if @headlines_data do %>🟢<% else %>🔴<% end %></span></div>
+        <%= if @headlines_data do %>
+          <h6>Headlines <%= Enum.count(@headlines_data) %></h6>
+          <%= for headline <- @headlines_data do %>
+            <ul class="self-center">
+              <li><%= headline.title %></li>
+            </ul>
+          <% end %>
         <% end %>
       </div>
     """
