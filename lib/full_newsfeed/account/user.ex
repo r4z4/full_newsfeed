@@ -3,9 +3,10 @@ defmodule FullNewsfeed.Account.User do
   import Ecto.Changeset
   alias FullNewsfeed.Core.Utils
 
-  @primary_key {:id, :binary_id, autogenerate: true}
-  @foreign_key_type :binary_id
+  @primary_key {:id, :integer, autogenerate: false}
+  @foreign_key_type :integer
   schema "user" do
+    field :slug, :binary_id
     field :email, :string
     field :username, :string
     field :role, Ecto.Enum, values: Utils.roles

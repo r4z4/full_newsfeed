@@ -51,7 +51,7 @@ defmodule FullNewsfeed.Core.Utils do
     end
 
     def hold_cats do
-        [:candidate, :user, :election, :forum, :thread, :post, :race]
+        [:user, :beer, :bank, :cc]
     end
 
     def event_types do
@@ -74,4 +74,14 @@ defmodule FullNewsfeed.Core.Utils do
         [:Site, :General, :Politics, :State]
     end
 
+    @spec display_missing_fields(list()) :: binary()
+    def display_missing_fields(missing) do
+        List.foldl(missing, "", fn x, acc ->
+          if (x) do
+            (to_string(x) |> String.capitalize()) <> " " <> acc
+          else
+            acc
+          end
+        end) |> String.trim()
+    end
 end

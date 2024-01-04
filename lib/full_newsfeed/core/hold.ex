@@ -1,15 +1,16 @@
-defmodule FullNewsfeed.Core.Holds do
+defmodule FullNewsfeed.Core.Hold do
   use Ecto.Schema
   import Ecto.Changeset
   alias FullNewsfeed.Core.Utils
 
-  @primary_key {:id, :binary_id, autogenerate: true}
-  @foreign_key_type :binary_id
-  schema "holds" do
-    field :user_id, :binary_id
+  @primary_key {:id, :integer, autogenerate: false}
+  @foreign_key_type :integer
+  schema "hold" do
+    field :slug, :binary_id
+    field :user_id, :integer
+    field :type, Ecto.Enum, values: Utils.hold_types # :upvote, :downvote, :favorite
+    field :hold_cat, Ecto.Enum, values: Utils.hold_cats # :beer, :bank
     field :hold_cat_id, :binary_id
-    field :hold_cat, Ecto.Enum, values: Utils.hold_cats
-    field :type, Ecto.Enum, values: Utils.hold_types
     field :active, :boolean
 
     timestamps()

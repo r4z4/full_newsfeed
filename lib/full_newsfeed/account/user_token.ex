@@ -12,8 +12,8 @@ defmodule FullNewsfeed.Account.UserToken do
   @confirm_validity_in_days 7
   @change_email_validity_in_days 7
   @session_validity_in_days 60
-  @primary_key {:id, :binary_id, autogenerate: true}
-  @foreign_key_type :binary_id
+  @primary_key {:id, :integer, autogenerate: false}
+  @foreign_key_type :integer
   schema "user_token" do
     field :token, :binary
     field :context, :string

@@ -7,6 +7,15 @@
 # General application configuration
 import Config
 
+config :full_newsfeed, FullNewsfeed.Repo, migration_primary_key: [type: :identity]
+
+# # To Customize the timestamps
+# config :app, App.Repo, migration_timestamps: [
+#   type: :utc_datetime,
+#   inserted_at: :created_at,
+#   updated_at: :changed_at
+# ]
+
 config :full_newsfeed,
   ecto_repos: [FullNewsfeed.Repo]
 

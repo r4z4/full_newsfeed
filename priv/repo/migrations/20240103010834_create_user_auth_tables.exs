@@ -4,8 +4,8 @@ defmodule FullNewsFeed.Repo.Migrations.CreateUsersAuthTables do
   def change do
     execute "CREATE EXTENSION IF NOT EXISTS citext", ""
 
-    create table(:user, primary_key: false) do
-      add :id, :binary_id, primary_key: true
+    create table(:user, primary_key: true) do
+      add :slug, :binary_id, null: false
       add :username, :string, null: false, default: false
       add :email, :citext, null: false
       add :role, :string, null: false, default: "reader"
@@ -16,9 +16,8 @@ defmodule FullNewsFeed.Repo.Migrations.CreateUsersAuthTables do
 
     create unique_index(:user, [:email])
 
-    create table(:user_token, primary_key: false) do
-      add :id, :binary_id, primary_key: true
-      add :user_id, references(:user, type: :binary_id, on_delete: :delete_all), null: false
+    create table(:user_token, primary_key: true) do
+      add :user_id, references(:user, type: :identity, on_delete: :delete_all), null: false
       add :token, :binary, null: false
       add :context, :string, null: false
       add :sent_to, :string

@@ -2,9 +2,9 @@ defmodule FullNewsfeed.Repo.Migrations.CreateHold do
   use Ecto.Migration
 
   def change do
-    create table(:hold, primary_key: false) do
-      add :id, :binary_id, primary_key: true
-      add :user_id, references(:user, type: :binary_id, on_delete: :delete_all), null: false
+    create table(:hold, primary_key: true) do
+      add :slug, :binary_id, null: false
+      add :user_id, references(:user, type: :identity, on_delete: :delete_all), null: false
       add :type, :string, null: false
       add :hold_cat_id, :binary_id, null: false
       add :hold_cat, :string, null: false
