@@ -10,10 +10,13 @@ defmodule FullNewsfeed.Core.Hold do
     field :user_id, :integer
     field :type, Ecto.Enum, values: Utils.hold_types # :upvote, :downvote, :favorite
     field :hold_cat, Ecto.Enum, values: Utils.hold_cats # :beer, :bank
-    field :hold_cat_id, :binary_id
+    field :hold_cat_id, :integer
     field :active, :boolean
+    # Custom timestamps because jfc ecto
+    field :inserted_at, :naive_datetime
+    field :updated_at, :naive_datetime, default: nil
 
-    timestamps()
+    # timestamps(null: [:updated_at])
   end
 
   @doc false

@@ -1,5 +1,6 @@
 defmodule FullNewsfeed.Items.Beer do
   use Ecto.Schema
+  alias Ecto.UUID
   alias FullNewsfeed.Core.Utils
   alias FullNewsfeed.Core.Error
   alias __MODULE__
@@ -20,6 +21,8 @@ defmodule FullNewsfeed.Items.Beer do
     field :ibu, :string
     field :alcohol, :string
     field :blg, :string
+
+    timestamps(null: [:updated_at])
   end
 
   @spec validate_required_fields({:map, ErrorList}) :: {arg1, arg2} when arg1: :map, arg2: ErrorList
@@ -93,7 +96,7 @@ defmodule FullNewsfeed.Items.Beer do
       nil ->
         %Beer{
           # id: object["id"],
-          uid: object["uid"],
+          uid: UUID.dump!(object["uid"]),
           brand: object["brand"],
           name: object["name"],
           style: object["style"],

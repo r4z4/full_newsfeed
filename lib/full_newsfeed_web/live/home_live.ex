@@ -10,35 +10,10 @@ defmodule FullNewsfeedWeb.HomeLive do
   alias Ecto.UUID
   alias FullNewsfeed.Repo
   alias FullNewsfeed.Items.Beer
+  alias FullNewsfeed.Items.Bank
+  alias FullNewsfeed.Items.Headline
   alias FullNewsfeed.Items.HeadlineList
   alias FullNewsfeed.Core.{Utils, Hold}
-
-  def mount(_params, _session, socket) do
-    # Send to ETS table vs storing in socket
-    # g_candidates = api_query(socket.assigns.current_user.state)
-    _task =
-      Task.Supervisor.async(FullNewsfeed.TaskSupervisor, fn ->
-        IO.puts("Hey from a task")
-        %{resp: "Test Response"}
-      end)
-    Logger.info("Home Socket = #{inspect socket}", ansi_color: :magenta)
-
-    floor_task =
-      Task.Supervisor.async(FullNewsfeed.TaskSupervisor, fn ->
-        IO.puts("Hey from a task")
-        %{resp: "Test Response"}
-      end)
-
-    {:ok,
-     socket
-     |> assign(:messages, [])
-     |> assign(:alert, nil)
-     |> assign(:floor_actions, Task.await(floor_task, 10000))
-     |> assign(:bank_data, nil)
-     |> assign(:headlines_data, nil)
-     |> assign(:beer_data, nil)}
-  end
-
 
   # defp get_favorites(holds) do
   #   # IO.inspect(holds, label: "holds")
@@ -49,7 +24,7 @@ defmodule FullNewsfeedWeb.HomeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div>
+    <div class="w-full">
       <.header class="text-center">
         Hello <%= assigns.current_user.username %> || Welcome to Full Newsfeed
       </.header>
@@ -92,7 +67,7 @@ defmodule FullNewsfeedWeb.HomeLive do
         </div>
       </div>
 
-      <div class="grid justify-center mx-auto text-center md:grid-cols-3 lg:grid-cols-3 gap-10 lg:gap-10 my-10 text-white">
+      <div class="grid justify-center mx-auto w-full text-center md:grid-cols-3 lg:grid-cols-3 gap-2 lg:gap-2 my-10 text-white">
         <div class="basis-1/3 flex flex-col items-center justify-center">
           <FullNewsfeedWeb.MainComponents.bank_card bank_data={@bank_data} />
         </div>
@@ -114,6 +89,33 @@ defmodule FullNewsfeedWeb.HomeLive do
     """
   end
 
+  def mount(_params, _session, socket) do
+    IO.inspect(socket, label: "Socket")
+    # Send to ETS table vs storing in socket
+    # g_candidates = api_query(socket.assigns.current_user.state)
+    _task =
+      Task.Supervisor.async(FullNewsfeed.TaskSupervisor, fn ->
+        IO.puts("Hey from a task")
+        %{resp: "Test Response"}
+      end)
+    Logger.info("Home Socket = #{inspect socket}", ansi_color: :magenta)
+
+    floor_task =
+      Task.Supervisor.async(FullNewsfeed.TaskSupervisor, fn ->
+        IO.puts("Hey from a task")
+        %{resp: "Test Response"}
+      end)
+
+    {:ok,
+     socket
+     |> assign(:messages, [])
+     |> assign(:alert, nil)
+     |> assign(:floor_actions, Task.await(floor_task, 10000))
+     |> assign(:bank_data, nil)
+     |> assign(:headlines_data, nil)
+     |> assign(:beer_data, nil)}
+  end
+
   @impl true
   def handle_event("validate_email", params, socket) do
     %{"current_password" => password, "user" => user_params} = params
@@ -126,6 +128,73 @@ defmodule FullNewsfeedWeb.HomeLive do
 
     {:noreply, assign(socket, email_form: email_form, email_form_current_password: password)}
   end
+
+  @impl true
+  def handle_event("service_casted", params, socket) do
+    IO.inspect(socket, label: "Socket")
+    data =
+      case String.to_existing_atom(params["entity"]) do
+        # GenServer.cast String.to_existing_atom(params["castto"]), {String.to_existing_atom(params["op"]), String.to_existing_atom(params["res"])}
+        :bank -> fetch_bank()
+        :headlines -> fetch_headlines()
+        :beer -> fetch_beer()
+        _ -> raise "No ID Match for find_nearest()"
+      end
+    IO.inspect(data, label: "Data")
+    data_label = String.to_existing_atom(params["entity"] <> "_data")
+    {:noreply,
+      socket
+      |> assign(data_label, data)}
+      # |> assign(bank_data: data)
+      # |> assign(beer_data: data)}
+  end
+
+  @impl true
+  def handle_event("save_item", params, socket) do
+    res =
+      case String.to_existing_atom(params["entity"]) do
+        # GenServer.cast String.to_existing_atom(params["castto"]), {String.to_existing_atom(params["op"]), String.to_existing_atom(params["res"])}
+        :bank -> save_entity(%{:entity => :bank, :struct => socket.assigns.bank_data, :user_id => socket.assigns.current_user.id, :idx => nil})
+        # Value contains the index of the HL to save
+        :headline ->
+          {idx, _} = Integer.parse(params["value"])
+          save_entity(%{:entity => :headline, :struct => socket.assigns.headlines_data, :user_id => socket.assigns.current_user.id, :idx => idx})
+        :beer -> save_entity(%{:entity => :beer, :struct => socket.assigns.beer_data, :user_id => socket.assigns.current_user.id, :idx => nil})
+        _ -> raise "No ID Match for save_item()"
+      end
+    msg =
+      case res do
+        {_id, nil} -> "Record Updated"
+        {:ok, _record} -> "Record Inserted"
+        {:error, changeset} -> "Error: #{changeset.errors}"
+      end
+    {:noreply, put_flash(socket, :info, msg)}
+  end
+
+  @impl true
+  def handle_event("update_email", params, socket) do
+    %{"current_password" => password, "user" => user_params} = params
+    user = socket.assigns.current_user
+
+    case Account.apply_user_email(user, password, user_params) do
+      {:ok, applied_user} ->
+        Account.deliver_user_update_email_instructions(
+          applied_user,
+          user.email,
+          &url(~p"/users/settings/confirm_email/#{&1}")
+        )
+
+        info = "A link to confirm your email change has been sent to the new address."
+        {:noreply, socket |> put_flash(:info, info) |> assign(email_form_current_password: nil)}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :email_form, to_form(Map.put(changeset, :action, :insert)))}
+    end
+  end
+
+  # def handle_event("new_message", params, socket) do
+  #   {:noreply, socket}
+  # end
 
   def fetch_bank do
     {:ok, resp} =
@@ -140,7 +209,7 @@ defmodule FullNewsfeedWeb.HomeLive do
 
     {:ok, body} = Jason.decode(resp.body)
     IO.inspect(body, label: "Body")
-    body
+    body |> Bank.new()
   end
 
   def fetch_beer do
@@ -178,92 +247,117 @@ defmodule FullNewsfeedWeb.HomeLive do
     articles |> HeadlineList.new()
   end
 
-
-
-
-  @impl true
-  def handle_event("service_casted", params, socket) do
-    IO.inspect(socket, label: "Socket")
-    data =
-      case String.to_existing_atom(params["entity"]) do
-        # GenServer.cast String.to_existing_atom(params["castto"]), {String.to_existing_atom(params["op"]), String.to_existing_atom(params["res"])}
-        :bank -> fetch_bank()
-        :headlines -> fetch_headlines()
-        :beer -> fetch_beer()
-        _ -> raise "No ID Match for find_nearest()"
-      end
-    IO.inspect(data, label: "Data")
-    data_label = String.to_existing_atom(params["entity"] <> "_data")
-    {:noreply,
-      socket
-      |> assign(data_label, data)}
-      # |> assign(bank_data: data)
-      # |> assign(beer_data: data)}
-  end
-
-  def save_beer(beer_struct, user_id) do
-    # item_hold = %Hold{slug: UUID.generate(), user_id: user_id, hold_cat: :beer, type: :favorite, hold_cat_id: UUID.generate(), active: true, updated_at: nil}
-    attrs = %{slug: UUID.generate(), user_id: user_id, hold_cat: :beer, type: :favorite, hold_cat_id: UUID.generate(), active: true, updated_at: nil}
-    changeset = Hold.changeset(%Hold{}, attrs)
-    # Check for existing. Then update/create_new
-    case Repo.exists?(from h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == :beer) do
-      true ->
-        IO.puts("It Exists")
-        from(h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == :beer)
-        |> Repo.update_all(set: [hold_cat_id: UUID.generate()])
-      false ->
-        IO.puts("It Does Not Exist")
-        Repo.insert(changeset)
-    end
-    # Find other users who share the same :favorite, and send them a message
-    # scan_and_send_update()
-  end
-
-  def save_bank(bank_struct) do
-    Repo.insert(bank_struct)
-  end
-
-  @impl true
-  def handle_event("save_item", params, socket) do
-    res =
-      case String.to_existing_atom(params["entity"]) do
-        # GenServer.cast String.to_existing_atom(params["castto"]), {String.to_existing_atom(params["op"]), String.to_existing_atom(params["res"])}
-        :bank -> save_bank(socket.assigns.bank_data)
-        :headlines -> {:ok, "Credit Card Data"}
-        :beer -> save_beer(socket.assigns.beer_data, socket.assigns.current_user.id)
-        _ -> raise "No ID Match for save_item()"
-      end
-    msg =
-      case res do
-        {_id, nil} -> "Record Updated"
-        {:ok, _record} -> "Record Inserted"
-        {:error, changeset} -> "Error: #{changeset.errors}"
-      end
-    {:noreply, put_flash(socket, :info, msg)}
-  end
-
-  @impl true
-  def handle_event("update_email", params, socket) do
-    %{"current_password" => password, "user" => user_params} = params
-    user = socket.assigns.current_user
-
-    case Account.apply_user_email(user, password, user_params) do
-      {:ok, applied_user} ->
-        Account.deliver_user_update_email_instructions(
-          applied_user,
-          user.email,
-          &url(~p"/users/settings/confirm_email/#{&1}")
-        )
-
-        info = "A link to confirm your email change has been sent to the new address."
-        {:noreply, socket |> put_flash(:info, info) |> assign(email_form_current_password: nil)}
-
-      {:error, changeset} ->
-        {:noreply, assign(socket, :email_form, to_form(Map.put(changeset, :action, :insert)))}
-    end
-  end
-
-  # def handle_event("new_message", params, socket) do
-  #   {:noreply, socket}
+  # def save_beer(beer_struct, user_id) do
+  #   # item_hold = %Hold{slug: UUID.generate(), user_id: user_id, hold_cat: :beer, type: :favorite, hold_cat_id: UUID.generate(), active: true, updated_at: nil}
+  #   attrs = %{slug: UUID.generate(), user_id: user_id, hold_cat: :beer, type: :favorite, hold_cat_id: 1, active: true, updated_at: nil}
+  #   changeset = Hold.changeset(%Hold{}, attrs)
+  #   name = beer_struct.name
+  #   # IO.inspect(name, label: "Name")
+  #   existing = Repo.get_by(Beer, name: name)
+  #   beer_id =
+  #     case existing do
+  #       # Create new record and return Id
+  #       nil -> Repo.insert(beer_struct, returning: [:id])
+  #       _   -> existing.id
+  #     end
+  #   IO.inspect(beer_id)
+  #   # Check for existing. Then update/create_new
+  #   case Repo.exists?(from h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == :beer) do
+  #     true ->
+  #       IO.puts("It Exists")
+  #       from(h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == :beer)
+  #       |> Repo.update_all(set: [hold_cat_id: :rand.uniform(9)])
+  #     false ->
+  #       IO.puts("It Does Not Exist")
+  #       Repo.insert(changeset)
+  #   end
+  #   # Find other users who share the same :favorite, and send them a message
+  #   scan_and_send_update(%{:entity => :beer, :id => beer_id})
   # end
+
+  def find_existing(struct, entity_atom) do
+    existing =
+      case entity_atom do
+        :headline -> Repo.get_by(Headline, title: struct.title)
+        :beer -> Repo.get_by(Beer, name: struct.name)
+        :bank -> Repo.get_by(Bank, bank_name: struct.bank_name)
+      end
+  end
+
+  def save_entity(%{:entity => entity_atom, :struct => struct, :user_id => user_id, :idx => idx}) do
+    IO.inspect(entity_atom)
+    IO.inspect(struct)
+    IO.inspect(user_id)
+    IO.inspect(idx)
+    # item_hold = %Hold{slug: UUID.generate(), user_id: user_id, hold_cat: :beer, type: :favorite, hold_cat_id: UUID.generate(), active: true, updated_at: nil}
+    attrs = %{slug: UUID.generate(), user_id: user_id, hold_cat: entity_atom, type: :favorite, hold_cat_id: 1, active: true, updated_at: nil}
+    changeset = Hold.changeset(%Hold{}, attrs)
+    # If its a list, need to get individual struct out, based on index. Which FIXME- don't use index. Use KV.
+    struct = if idx, do: Enum.at(struct, idx), else: struct
+    existing = find_existing(struct, entity_atom)
+    IO.inspect(existing, label: "existing")
+    entity_id =
+      case existing do
+        # Create new record and return Id
+        nil ->
+          # For some reason returning [:id] stopped working
+          {:ok, hl} = Repo.insert(struct, returning: true)
+          hl.id
+        _   -> existing.id
+      end
+    IO.inspect(entity_id)
+    # Check for existing. Then update/create_new
+    resp =
+      case Repo.exists?(from h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == ^entity_atom) do
+        true ->
+          IO.puts("It Exists")
+          from(h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == ^entity_atom)
+          |> Repo.update_all(set: [hold_cat_id: :rand.uniform(9)])
+        false ->
+          IO.puts("It Does Not Exist")
+          Repo.insert(changeset)
+      end
+    # Find other users who share the same :favorite, and send them a message
+    scan_and_send_update(%{:entity => entity_atom, :id => entity_id})
+    resp
+  end
+
+  # def save_headline(headlines_struct, user_id, headline_index) do
+  #   attrs = %{slug: UUID.generate(), user_id: user_id, hold_cat: :headline, type: :favorite, hold_cat_id: 1, active: true, updated_at: nil}
+  #   changeset = Hold.changeset(%Hold{}, attrs)
+  #   headline_struct = Enum.at(headlines_struct, headline_index)
+  #   title = headline_struct.title
+  #   IO.inspect(title, label: "title")
+  #   existing = Repo.get_by(Headline, title: title)
+  #   IO.inspect(headline_struct, label: "HL Struct")
+  #   headline_id =
+  #     case existing do
+  #       # Create new record and return Id
+  #       nil -> Repo.insert(headline_struct, returning: [:id])
+  #       _   -> existing.id
+  #     end
+  #   IO.inspect(headline_id)
+  #   # Check for existing. Then update/create_new
+  #   case Repo.exists?(from h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == :headline) do
+  #     true ->
+  #       IO.puts("It Exists")
+  #       from(h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == :headline)
+  #       |> Repo.update_all(set: [hold_cat_id: :rand.uniform(9)])
+  #     false ->
+  #       IO.puts("It Does Not Exist")
+  #       Repo.insert(changeset)
+  #   end
+  #   # Find other users who share the same :favorite, and send them a message
+  #   scan_and_send_update(%{:entity => :headline, :id => headline_id})
+  # end
+
+  def scan_and_send_update(%{:entity => entity, :id => id}) do
+    query = from h in Hold, select: h.user_id, where: h.hold_cat == ^entity, where: h.hold_cat_id == ^id
+    hold_ids = Repo.all(query)
+    for id <- hold_ids do
+      IO.puts("Sending a message to user #{id}")
+    end
+    # Also send out PubSub
+    # FullNewsfeedWeb.Endpoint.broadcast(live_socket_id, "disconnect", %{})
+  end
 end

@@ -23,7 +23,7 @@ config :full_newsfeed, FullNewsfeedWeb.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "VExCdFw9H/qz4/D+BW4uWqGkrf+VriSrOxrfIr/QjM78LFC4zFmrnhEgSjX+YDOU",
+  secret_key_base: "RvtmVpUw1cp5aYMMX+htaLsDWmZVjd3ivuSYH5UzLfJO0Vs9x+xiMbgflX3rkpSA",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]},
     tailwind: {Tailwind, :install_and_run, [:default, ~w(--watch)]}

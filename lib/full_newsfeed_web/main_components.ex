@@ -1,5 +1,6 @@
 defmodule FullNewsfeedWeb.MainComponents do
   use Phoenix.Component
+  alias FullNewsfeed.Items.Headline
   alias FullNewsfeedWeb.CoreComponents
   # alias Phoenix.LiveView.JS
 
@@ -16,21 +17,19 @@ defmodule FullNewsfeedWeb.MainComponents do
         <div class="justify-self-start"><h4>Beer</h4></div>
         <div class="justify-self-end"><span class="text-sm"><%= if @beer_data do %>🟢<% else %>🔴<% end %></span></div>
         <%= if @beer_data do %>
+          <button
+            type="button"
+            phx-click="save_item"
+            phx-value-entity={:beer}
+            value={:beer_value}
+          ><CoreComponents.icon name="hero-star-solid" class="h-3 w-3" /></button>
           <ul class="self-center">
-            <li><%= String.capitalize(@beer_data.uid) %></li>
+            <li><%= String.capitalize(@beer_data.alcohol) %></li>
             <li><%= String.capitalize(@beer_data.name) %></li>
             <li><%= String.capitalize(@beer_data.brand) %></li>
             <li><%= @beer_data.style %></li>
             <li><%= @beer_data.alcohol %></li>
           </ul>
-          <button
-            type="button"
-            phx-click="save_item"
-            phx-value-entity={:beer}
-            value={:val_test}
-            class="rounded border-2 border-success w-3/3 px-2 pb-[6px] pt-2 text-xs font-medium uppercase leading-normal text-success transition duration-150 ease-in-out hover:border-success-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-success-600 focus:border-success-600 focus:text-success-600 focus:outline-none focus:ring-0 active:border-success-700 active:text-success-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10"
-          >Save
-        </button>
         <% end %>
       </div>
     """
@@ -42,10 +41,16 @@ defmodule FullNewsfeedWeb.MainComponents do
         <div class="justify-self-start"><h4>Bank</h4></div>
         <div class="justify-self-end"><span class="text-sm"><%= if @bank_data do %>🟢<% else %>🔴<% end %></span></div>
         <%= if @bank_data do %>
+          <button
+            type="button"
+            phx-click="save_item"
+            phx-value-entity={:bank}
+            value={:bank_value}
+          ><CoreComponents.icon name="hero-star-solid" class="h-3 w-3" /></button>
           <ul class="self-center">
-            <li><%= String.capitalize(@bank_data.uid) %></li>
+            <li><%= String.capitalize(@bank_data.swift_bic) %></li>
             <li><%= String.capitalize(@bank_data.bank_name) %></li>
-            <li><%= String.capitalize(@bank_data.account_number) %></li>
+            <li><%= String.capitalize(@bank_data.iban) %></li>
           </ul>
         <% end %>
       </div>
@@ -54,14 +59,21 @@ defmodule FullNewsfeedWeb.MainComponents do
 
   def headlines_card(assigns) do
     ~H"""
-      <div class="relative flex">
+      <div class="">
         <div class="justify-self-start"><h4>Headlines</h4></div>
         <div class="justify-self-end"><span class="text-sm"><%= if @headlines_data do %>🟢<% else %>🔴<% end %></span></div>
         <%= if @headlines_data do %>
-          <h6>Headlines <%= Enum.count(@headlines_data) %></h6>
+          <h6>Headlines (<%= Enum.count(@headlines_data) %>) from (<%= Headline.display_source(List.first(@headlines_data).source_id) %>)</h6>
           <%= for headline <- @headlines_data do %>
-            <ul class="self-center">
+            <ul class="text-zinc-200 list-none text-sm dark:text-gray-400 border border-sky-800 my-4">
+              <button
+                type="button"
+                phx-click="save_item"
+                phx-value-entity={:headline}
+                value={Enum.find_index(@headlines_data, fn hl -> hl == headline end)}
+              ><CoreComponents.icon name="hero-star-solid" class="h-3 w-3" /></button>
               <li><%= headline.title %></li>
+              <li>Author: <%= headline.author %></li>
             </ul>
           <% end %>
         <% end %>

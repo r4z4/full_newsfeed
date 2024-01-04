@@ -10,7 +10,8 @@ defmodule FullNewsfeed.Items.Headline do
   @primary_key {:id, :integer, autogenerate: false}
   @foreign_key_type :integer
   schema "headline" do
-    field :source, {:map, :string}
+    # field :source, {:map, :string}
+    field :source_id, :integer
     field :author, :string
     field :title, :string
     field :description, :string
@@ -18,6 +19,8 @@ defmodule FullNewsfeed.Items.Headline do
     field :urlToImage, :string
     field :publishedAt, :string
     field :content, :string
+
+    timestamps(null: [:updated_at])
   end
 
   @spec validate_required_fields({:map, ErrorList}) :: {arg1, arg2} when arg1: :map, arg2: ErrorList
@@ -56,6 +59,22 @@ defmodule FullNewsfeed.Items.Headline do
     end
   end
 
+  def get_source_id(%{"id" => id, "name" => name}) do
+    case id do
+      "associated-press" -> 1
+      "bbc-news" -> 2
+      _ -> 0
+    end
+  end
+
+  def display_source(id) do
+    case id do
+      1 -> "AP"
+      2 -> "BBS"
+      _ -> "Other"
+    end
+  end
+
   def new(object) do
     err_props = %{:errors => []}
     valid =
@@ -76,10 +95,11 @@ defmodule FullNewsfeed.Items.Headline do
       nil ->
         %Headline{
           # id: object["id"],
-          source: object["source"],
+          # source: object["source"],
+          source_id: get_source_id(object["source"]),
           author: object["author"],
           title: object["title"],
-          description: object["description"],
+          description: object["description"] |> String.slice(0..250),
           url: object["url"],
           urlToImage: object["urlToImage"],
           publishedAt: object["publishedAt"],

@@ -51,7 +51,7 @@ defmodule FullNewsfeed.Core.Utils do
     end
 
     def hold_cats do
-        [:user, :beer, :bank, :cc]
+        [:user, :beer, :bank, :headline]
     end
 
     def event_types do
