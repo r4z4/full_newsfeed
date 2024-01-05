@@ -9,6 +9,7 @@ defmodule FullNewsfeedWeb.HomeLive do
   # alias FullNewsfeedWeb.Components.PresenceDisplay
   alias Ecto.UUID
   alias FullNewsfeed.Repo
+  alias FullNewsfeed.Core.TopicHelpers
   alias FullNewsfeed.Entities.Beer
   alias FullNewsfeed.Entities.Bank
   alias FullNewsfeed.Entities.Headline
@@ -90,32 +91,38 @@ defmodule FullNewsfeedWeb.HomeLive do
   end
 
   # def subscribe_to_services do
-  #   FullNewsfeed.Endpoint.subscribe(@xml_parse)
-  #   FullNewsfeed.Endpoint.subscribe(@addrs)
+  #   FullNewsfeedWeb.Endpoint.subscribe(@xml_parse)
+  #   FullNewsfeedWeb.Endpoint.subscribe(@addrs)
   # end
+
+  defp sub_and_add(hold_cat, socket) do
+    case Kernel.elem(hold_cat, 0) do
+      :bank_holds -> TopicHelpers.subscribe_to_holds("bank", Kernel.elem(hold_cat, 1) |> Enum.map(fn h -> h.id end))
+      :beer_holds -> TopicHelpers.subscribe_to_holds("beer", Kernel.elem(hold_cat, 1) |> Enum.map(fn h -> h.id end))
+      :headline_holds -> TopicHelpers.subscribe_to_holds("headline", Kernel.elem(hold_cat, 1) |> Enum.map(fn h -> h.id end))
+    end
+  end
+
+  defp get_favorites(holds) do
+    # IO.inspect(holds, label: "holds")
+    all_holds = holds.candidate_holds ++ holds.user_holds ++ holds.election_holds ++ holds.race_holds ++ holds.post_holds ++ holds.thread_holds
+    |> Enum.filter(fn x -> x.type == :favorite end)
+  end
 
   def mount(_params, _session, socket) do
     IO.inspect(socket, label: "Socket")
     # Send to ETS table vs storing in socket
     # g_candidates = api_query(socket.assigns.current_user.state)
-    _task =
-      Task.Supervisor.async(FullNewsfeed.TaskSupervisor, fn ->
-        IO.puts("Hey from a task")
-        %{resp: "Test Response"}
-      end)
     Logger.info("Home Socket = #{inspect socket}", ansi_color: :magenta)
-
-    floor_task =
-      Task.Supervisor.async(FullNewsfeed.TaskSupervisor, fn ->
-        IO.puts("Hey from a task")
-        %{resp: "Test Response"}
-      end)
-
+    for hold_cat <- socket.assigns.current_user_holds do
+      IO.inspect(hold_cat, label: "hold_cat")
+      # Subscribe to user_holds. E.g. forums that user subscribes to
+      sub_and_add(hold_cat, socket)
+    end
     {:ok,
      socket
      |> assign(:messages, [])
      |> assign(:alert, nil)
-     |> assign(:floor_actions, Task.await(floor_task, 10000))
      |> assign(:bank_data, nil)
      |> assign(:headlines_data, nil)
      |> assign(:beer_data, nil)}
@@ -173,6 +180,8 @@ defmodule FullNewsfeedWeb.HomeLive do
         {:ok, _record} -> "Record Inserted"
         {:error, changeset} -> "Error: #{changeset.errors}"
       end
+    # Remove the flash we are about to cast after 5 sec
+    Process.send_after(self(), :clear_flash, 5000)
     {:noreply, put_flash(socket, :info, msg)}
   end
 
@@ -196,6 +205,13 @@ defmodule FullNewsfeedWeb.HomeLive do
         {:noreply, assign(socket, :email_form, to_form(Map.put(changeset, :action, :insert)))}
     end
   end
+
+  @impl true
+  def handle_info(:clear_flash, socket) do
+    {:noreply, clear_flash(socket)}
+  end
+
+  def handle_info(_, socket), do: {:noreply, socket}
 
   # def handle_event("new_message", params, socket) do
   #   {:noreply, socket}
@@ -252,34 +268,6 @@ defmodule FullNewsfeedWeb.HomeLive do
     articles |> HeadlineList.new()
   end
 
-  # def save_beer(beer_struct, user_id) do
-  #   # item_hold = %Hold{slug: UUID.generate(), user_id: user_id, hold_cat: :beer, type: :favorite, hold_cat_id: UUID.generate(), active: true, updated_at: nil}
-  #   attrs = %{slug: UUID.generate(), user_id: user_id, hold_cat: :beer, type: :favorite, hold_cat_id: 1, active: true, updated_at: nil}
-  #   changeset = Hold.changeset(%Hold{}, attrs)
-  #   name = beer_struct.name
-  #   # IO.inspect(name, label: "Name")
-  #   existing = Repo.get_by(Beer, name: name)
-  #   beer_id =
-  #     case existing do
-  #       # Create new record and return Id
-  #       nil -> Repo.insert(beer_struct, returning: [:id])
-  #       _   -> existing.id
-  #     end
-  #   IO.inspect(beer_id)
-  #   # Check for existing. Then update/create_new
-  #   case Repo.exists?(from h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == :beer) do
-  #     true ->
-  #       IO.puts("It Exists")
-  #       from(h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == :beer)
-  #       |> Repo.update_all(set: [hold_cat_id: :rand.uniform(9)])
-  #     false ->
-  #       IO.puts("It Does Not Exist")
-  #       Repo.insert(changeset)
-  #   end
-  #   # Find other users who share the same :favorite, and send them a message
-  #   scan_and_send_update(%{:entity => :beer, :id => beer_id})
-  # end
-
   def find_existing(struct, entity_atom) do
     existing =
       case entity_atom do
@@ -311,51 +299,33 @@ defmodule FullNewsfeedWeb.HomeLive do
         _   -> existing.id
       end
     IO.inspect(entity_id)
+    # Topics for PubSub
+    new_topic = Atom.to_string(entity_atom) <> "_" <> Integer.to_string(entity_id)
     # Check for existing. Then update/create_new
     resp =
-      case Repo.exists?(from h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == ^entity_atom) do
-        true ->
-          IO.puts("It Exists")
-          from(h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == ^entity_atom)
-          |> Repo.update_all(set: [hold_cat_id: :rand.uniform(9)])
-        false ->
+      case Repo.one(from h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == ^entity_atom) do
+        nil ->
           IO.puts("It Does Not Exist")
-          Repo.insert(changeset)
+          res = Repo.insert(changeset)
+          FullNewsfeedWeb.Endpoint.subscribe(new_topic)
+          # FIXME returning res just to not have to change resp var now
+          res
+        hold ->
+          IO.puts("It Exists")
+          old_topic = Atom.to_string(entity_atom) <> "_" <> Integer.to_string(hold.hold_cat_id)
+          res =
+            from(h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == ^entity_atom)
+            |> Repo.update_all(set: [hold_cat_id: :rand.uniform(9)])
+          FullNewsfeedWeb.Endpoint.unsubscribe(old_topic)
+          FullNewsfeedWeb.Endpoint.subscribe(new_topic)
+          # FIXME returning res just to not have to change resp var now
+          res
       end
     # Find other users who share the same :favorite, and send them a message
     # scan_and_send_update(%{:entity => entity_atom, :id => entity_id})
-    GenServer.cast :message_server, {:scan_and_send_notification, %{:entity => entity_atom, :id => entity_id}}
+    GenServer.cast :message_server, {:scan_and_send_notification, %{:entity => entity_atom, :id => entity_id, :user_id => user_id}}
     resp
   end
-
-  # def save_headline(headlines_struct, user_id, headline_index) do
-  #   attrs = %{slug: UUID.generate(), user_id: user_id, hold_cat: :headline, type: :favorite, hold_cat_id: 1, active: true, updated_at: nil}
-  #   changeset = Hold.changeset(%Hold{}, attrs)
-  #   headline_struct = Enum.at(headlines_struct, headline_index)
-  #   title = headline_struct.title
-  #   IO.inspect(title, label: "title")
-  #   existing = Repo.get_by(Headline, title: title)
-  #   IO.inspect(headline_struct, label: "HL Struct")
-  #   headline_id =
-  #     case existing do
-  #       # Create new record and return Id
-  #       nil -> Repo.insert(headline_struct, returning: [:id])
-  #       _   -> existing.id
-  #     end
-  #   IO.inspect(headline_id)
-  #   # Check for existing. Then update/create_new
-  #   case Repo.exists?(from h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == :headline) do
-  #     true ->
-  #       IO.puts("It Exists")
-  #       from(h in Hold, where: h.user_id == ^user_id, where: h.hold_cat == :headline)
-  #       |> Repo.update_all(set: [hold_cat_id: :rand.uniform(9)])
-  #     false ->
-  #       IO.puts("It Does Not Exist")
-  #       Repo.insert(changeset)
-  #   end
-  #   # Find other users who share the same :favorite, and send them a message
-  #   scan_and_send_update(%{:entity => :headline, :id => headline_id})
-  # end
 
   # def scan_and_send_update(%{:entity => entity, :id => id}) do
   #   query = from h in Hold, select: h.user_id, where: h.hold_cat == ^entity, where: h.hold_cat_id == ^id

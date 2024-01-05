@@ -8,7 +8,7 @@ defmodule FullNewsfeed.Servers.MessageServer do
 
   @time_interval_ms 2000
   @call_interval_ms 3000
-  @addrs "addrs"
+  @notification "notification"
 
   def to_notification(%{"about_entity" => about_entity, "about_id" => about_id, "to" => to, "subject" => subject, "message" => message, "sent_at" => sent_at}) do
 
@@ -22,7 +22,7 @@ defmodule FullNewsfeed.Servers.MessageServer do
     }
   end
 
-  def scan_and_send_notification(%{:entity => entity, :id => id}) do
+  def scan_and_send_notification(%{:entity => entity, :id => id, :user_id => user_id}) do
     IO.inspect(entity, label: "Entity")
     query = from h in Hold, select: h.user_id, where: h.hold_cat == ^entity, where: h.hold_cat_id == ^id
     hold_ids = Repo.all(query)
@@ -30,7 +30,9 @@ defmodule FullNewsfeed.Servers.MessageServer do
       IO.puts("Sending a message to user #{id}")
     end
     # Also send out PubSub
-    # FullNewsfeedWeb.Endpoint.broadcast(live_socket_id, "disconnect", %{})
+    topic = Atom.to_string(entity) <> "_" <> Integer.to_string(id)
+    liked_message = %{type: entity, string: "Hey! User #{user_id} also likes the same #{Atom.to_string(entity)} as you. Go say hi."}
+    FullNewsfeedWeb.Endpoint.broadcast(topic, "notification", liked_message)
   end
 
   def start_link([name, state]) do
@@ -39,8 +41,8 @@ defmodule FullNewsfeed.Servers.MessageServer do
   end
 
   @impl true
-  def handle_cast({:scan_and_send_notification, %{:entity => entity_atom, :id => entity_id}}, state) do
-    scan_and_send_notification(%{:entity => entity_atom, :id => entity_id})
+  def handle_cast({:scan_and_send_notification, %{:entity => entity_atom, :id => entity_id, :user_id => user_id}}, state) do
+    scan_and_send_notification(%{:entity => entity_atom, :id => entity_id, :user_id => user_id})
     # Process.send_after(self(), sym, @time_interval_ms)
     IO.puts("Scan and Send Notification Sent?")
     {:noreply, state}
@@ -75,7 +77,7 @@ defmodule FullNewsfeed.Servers.MessageServer do
 
   defp publish(list) do
     Phoenix.PubSub.broadcast(
-      DoiEsper.PubSub,
+      FullNewsfeed.PubSub,
       @addrs,
       %{topic: @addrs, payload: %{status: :complete, data: list}}
     )

@@ -149,6 +149,7 @@ defmodule FullNewsfeedWeb.UserAuth do
 
   def on_mount(:ensure_authenticated, _params, session, socket) do
     socket = mount_current_user(socket, session)
+    socket = mount_current_user_holds(session, socket)
 
     if socket.assigns.current_user do
       {:cont, socket}
@@ -179,6 +180,14 @@ defmodule FullNewsfeedWeb.UserAuth do
       end
     end)
   end
+
+  defp mount_current_user_holds(session, socket) do
+    Phoenix.Component.assign_new(socket, :current_user_holds, fn ->
+    if user_token = session["user_token"] do
+      Account.get_all_holds_by_token(user_token)
+    end
+  end)
+end
 
   @doc """
   Used for routes that require the user to not be authenticated.

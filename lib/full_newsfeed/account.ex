@@ -7,6 +7,7 @@ defmodule FullNewsfeed.Account do
   alias FullNewsfeed.Repo
 
   alias FullNewsfeed.Account.{User, UserToken, UserNotifier}
+  alias FullNewsfeed.Core.Hold
 
   ## Database getters
 
@@ -349,5 +350,27 @@ defmodule FullNewsfeed.Account do
       {:ok, %{user: user}} -> {:ok, user}
       {:error, :user, changeset, _} -> {:error, changeset}
     end
+  end
+
+  ### Custom
+  def get_holds_by_token(token, cat)
+      when is_binary(token) do
+    query = from u in User,
+        join: ut in UserToken, on: u.id == ut.user_id,
+        join: h in Hold, on: u.id == h.user_id
+    query = from [u, ut, h] in query,
+          where: ut.token == ^token,
+          where: h.hold_cat == ^cat,
+          select: h
+          # Repo.all returns a list
+    Repo.all(query)
+  end
+
+  def get_all_holds_by_token(token) do
+    headline        = get_holds_by_token(token, :headline)
+    beer            = get_holds_by_token(token, :beer)
+    bank            = get_holds_by_token(token, :bank)
+
+    %{:headline_holds => headline, :beer_holds => beer, :bank_holds => bank}
   end
 end
