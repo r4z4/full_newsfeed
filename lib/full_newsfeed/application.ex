@@ -18,8 +18,11 @@ defmodule FullNewsfeed.Application do
       {Finch, name: FullNewsfeed.Finch},
       # Start the Endpoint (http/https)
       FullNewsfeedWeb.Endpoint,
-      FullNewsfeed.ThinWrapper,
+      Supervisor.child_spec({FullNewsfeed.Servers.MessageServer,  [:message_server, []]}, id: :message_server),
+
+      # FullNewsfeed.ThinWrapper,
       {Task.Supervisor, name: FullNewsfeed.TaskSupervisor}
+
       # Start a worker by calling: FullNewsfeed.Worker.start_link(arg)
       # {FullNewsfeed.Worker, arg}
     ]

@@ -12,8 +12,7 @@ defmodule FullNewsfeed.Repo.Migrations.CreateHeadline do
       add :urlToImage, :string, null: true
       add :publishedAt, :string, null: true
       add :content, :text, null: true
-
-      timestamps(null: [:updated_at])
+      add :inserted_at, :naive_datetime, null: false, default: fragment("NOW()")
     end
     create index(:headline, [:title])
     create unique_index(:headline, [:url, :title], name: :headline_u_index)

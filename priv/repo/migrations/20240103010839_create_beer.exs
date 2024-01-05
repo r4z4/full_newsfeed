@@ -13,8 +13,8 @@ defmodule FullNewsfeed.Repo.Migrations.CreateBeer do
       add :ibu, :string, null: false
       add :alcohol, :string, null: false
       add :blg, :string, null: false
-
-      timestamps(null: [:updated_at])
+      add :inserted_at, :naive_datetime, null: false, default: fragment("NOW()")
+      add :updated_at, :naive_datetime, null: true, default: nil
     end
     create index(:beer, [:name])
     create unique_index(:beer, [:uid, :name], name: :beer_u_index)

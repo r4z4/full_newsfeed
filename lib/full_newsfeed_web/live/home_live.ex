@@ -9,10 +9,10 @@ defmodule FullNewsfeedWeb.HomeLive do
   # alias FullNewsfeedWeb.Components.PresenceDisplay
   alias Ecto.UUID
   alias FullNewsfeed.Repo
-  alias FullNewsfeed.Items.Beer
-  alias FullNewsfeed.Items.Bank
-  alias FullNewsfeed.Items.Headline
-  alias FullNewsfeed.Items.HeadlineList
+  alias FullNewsfeed.Entities.Beer
+  alias FullNewsfeed.Entities.Bank
+  alias FullNewsfeed.Entities.Headline
+  alias FullNewsfeed.Entities.HeadlineList
   alias FullNewsfeed.Core.{Utils, Hold}
 
   # defp get_favorites(holds) do
@@ -88,6 +88,11 @@ defmodule FullNewsfeedWeb.HomeLive do
     </div>
     """
   end
+
+  # def subscribe_to_services do
+  #   FullNewsfeed.Endpoint.subscribe(@xml_parse)
+  #   FullNewsfeed.Endpoint.subscribe(@addrs)
+  # end
 
   def mount(_params, _session, socket) do
     IO.inspect(socket, label: "Socket")
@@ -318,7 +323,8 @@ defmodule FullNewsfeedWeb.HomeLive do
           Repo.insert(changeset)
       end
     # Find other users who share the same :favorite, and send them a message
-    scan_and_send_update(%{:entity => entity_atom, :id => entity_id})
+    # scan_and_send_update(%{:entity => entity_atom, :id => entity_id})
+    GenServer.cast :message_server, {:scan_and_send_notification, %{:entity => entity_atom, :id => entity_id}}
     resp
   end
 
@@ -351,13 +357,13 @@ defmodule FullNewsfeedWeb.HomeLive do
   #   scan_and_send_update(%{:entity => :headline, :id => headline_id})
   # end
 
-  def scan_and_send_update(%{:entity => entity, :id => id}) do
-    query = from h in Hold, select: h.user_id, where: h.hold_cat == ^entity, where: h.hold_cat_id == ^id
-    hold_ids = Repo.all(query)
-    for id <- hold_ids do
-      IO.puts("Sending a message to user #{id}")
-    end
-    # Also send out PubSub
-    # FullNewsfeedWeb.Endpoint.broadcast(live_socket_id, "disconnect", %{})
-  end
+  # def scan_and_send_update(%{:entity => entity, :id => id}) do
+  #   query = from h in Hold, select: h.user_id, where: h.hold_cat == ^entity, where: h.hold_cat_id == ^id
+  #   hold_ids = Repo.all(query)
+  #   for id <- hold_ids do
+  #     IO.puts("Sending a message to user #{id}")
+  #   end
+  #   # Also send out PubSub
+  #   # FullNewsfeedWeb.Endpoint.broadcast(live_socket_id, "disconnect", %{})
+  # end
 end

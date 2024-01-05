@@ -1,4 +1,4 @@
-defmodule FullNewsfeed.Items.Bank do
+defmodule FullNewsfeed.Entities.Bank do
   use Ecto.Schema
   alias __MODULE__
   alias Ecto.UUID
@@ -19,8 +19,9 @@ defmodule FullNewsfeed.Items.Bank do
     field :bank_name, :string
     field :routing_number_nacl, :string
     field :swift_bic, :string
-
-    timestamps(null: [:updated_at])
+    # Custom timestamps because jfc ecto
+    field :inserted_at, :naive_datetime
+    field :updated_at, :naive_datetime, default: nil
   end
 
   @spec validate_required_fields({:map, %{:errors => []}}) :: {:error, {:map, map()}} | {:ok, {:map, map()}}

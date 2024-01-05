@@ -1,7 +1,7 @@
-defmodule FullNewsfeed.Items.HeadlineList do
+defmodule FullNewsfeed.Entities.HeadlineList do
   use Ecto.Schema
   use Ecto.Type
-  alias FullNewsfeed.Items.Headline
+  alias FullNewsfeed.Entities.Headline
   alias __MODULE__
 
   def type, do: :array

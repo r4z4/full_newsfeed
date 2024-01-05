@@ -1,6 +1,6 @@
 defmodule FullNewsfeedWeb.MainComponents do
   use Phoenix.Component
-  alias FullNewsfeed.Items.Headline
+  alias FullNewsfeed.Entities.Headline
   alias FullNewsfeedWeb.CoreComponents
   # alias Phoenix.LiveView.JS
 

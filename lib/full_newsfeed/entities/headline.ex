@@ -1,6 +1,5 @@
-defmodule FullNewsfeed.Items.Beer do
+defmodule FullNewsfeed.Entities.Headline do
   use Ecto.Schema
-  alias Ecto.UUID
   alias FullNewsfeed.Core.Utils
   alias FullNewsfeed.Core.Error
   alias __MODULE__
@@ -10,25 +9,26 @@ defmodule FullNewsfeed.Items.Beer do
 
   @primary_key {:id, :integer, autogenerate: false}
   @foreign_key_type :integer
-  schema "beer" do
-    field :uid, :string
-    field :brand, :string
-    field :name, :string
-    field :style, :string
-    field :hop, :string
-    field :yeast, :string
-    field :malts, :string
-    field :ibu, :string
-    field :alcohol, :string
-    field :blg, :string
-
-    timestamps(null: [:updated_at])
+  schema "headline" do
+    # field :source, {:map, :string}
+    field :source_id, :integer
+    field :author, :string
+    field :title, :string
+    field :description, :string
+    field :url, :string
+    field :urlToImage, :string
+    field :publishedAt, :string
+    field :content, :string
+    # Custom timestamps because jfc ecto
+    field :inserted_at, :naive_datetime
+    # We will never edit a headline
+    # field :updated_at, :naive_datetime, default: nil
   end
 
   @spec validate_required_fields({:map, ErrorList}) :: {arg1, arg2} when arg1: :map, arg2: ErrorList
   defp validate_required_fields({object, err_props}) do
     IO.inspect(object)
-    required_fields = ["name", "uid", "brand"]
+    required_fields = ["url", "title"]
     missing = Enum.map(required_fields, fn field ->
       res = Map.fetch(object, field)
       # IO.inspect(res, label: "Res")
@@ -48,10 +48,12 @@ defmodule FullNewsfeed.Items.Beer do
     end
   end
 
-  @spec validate_name({:map, ErrorList}) :: {arg1, arg2} when arg1: :map, arg2: ErrorList
-  defp validate_name({object, err_props}) do
-    name = object["name"]
-    case is_binary(name) && String.length(name) in @name_min..@name_max do
+  @spec validate_url({:map, ErrorList}) :: {arg1, arg2} when arg1: :map, arg2: ErrorList
+  defp validate_url({object, err_props}) do
+    url = object["url"]
+    pattern = ~r/^([a-z][a-z0-9\*\-\.]*):\/\/(?:(?:(?:[\w\.\-\+!$&'\(\)*\+,;=]|%[0-9a-f]{2})+:)*(?:[\w\.\-\+%!$&'\(\)*\+,;=]|%[0-9a-f]{2})+@)?(?:(?:[a-z0-9\-\.]|%[0-9a-f]{2})+|(?:\[(?:[0-9a-f]{0,4}:)*(?:[0-9a-f]{0,4})\]))(?::[0-9]+)?(?:[\/|\?](?:[\w#!:\.\?\+=&@!$'~*,;\/\(\)\[\]\-]|%[0-9a-f]{2})*)?$/
+    valid = String.match?(url, pattern)
+    case valid do
       true -> {object, err_props}
       false ->
         err_props = Map.replace(err_props, :errors, [%Error{type: :validation, text: "Invalid Name"} | err_props.errors])
@@ -59,22 +61,21 @@ defmodule FullNewsfeed.Items.Beer do
     end
   end
 
-  # @spec validate_population({:map, ErrorList}) :: {arg1, arg2} when arg1: :map, arg2: ErrorList
-  # defp validate_population({object, err_props}) do
-  #   population = object[:population]
-  #   case is_integer(population) do
-  #     true ->
-  #       case population in @pop_min..@pop_max do
-  #         true -> {object, err_props}
-  #         false ->
-  #           err_props = Map.replace(err_props, :errors, [%Error{type: :validation, text: "Invalid Population Size"} | err_props.errors])
-  #           {object, err_props}
-  #       end
-  #     false ->
-  #       err_props = Map.replace(err_props, :errors, [%Error{type: :validation, text: "Invalid Population Type"} | err_props.errors])
-  #       {object, err_props}
-  #   end
-  # end
+  def get_source_id(%{"id" => id, "name" => name}) do
+    case id do
+      "associated-press" -> 1
+      "bbc-news" -> 2
+      _ -> 0
+    end
+  end
+
+  def display_source(id) do
+    case id do
+      1 -> "AP"
+      2 -> "BBS"
+      _ -> "Other"
+    end
+  end
 
   def new(object) do
     err_props = %{:errors => []}
@@ -83,7 +84,7 @@ defmodule FullNewsfeed.Items.Beer do
         # Only further validate if the fields are present. Avoids a nil check in each.
         {:ok, {object, err_props}} ->
           {object, err_props}
-          |> validate_name()
+          |> validate_url()
           # |> validate_population()
         {:error, {object, err_props}} ->
           {object, err_props}
@@ -94,18 +95,17 @@ defmodule FullNewsfeed.Items.Beer do
     case List.first(err_props.errors) do
       # No errors, create Struct
       nil ->
-        %Beer{
+        %Headline{
           # id: object["id"],
-          uid: UUID.dump!(object["uid"]),
-          brand: object["brand"],
-          name: object["name"],
-          style: object["style"],
-          hop: object["hop"],
-          yeast: object["yeast"],
-          malts: object["malts"],
-          ibu: object["ibu"],
-          alcohol: object["alcohol"],
-          blg: object["blg"]
+          # source: object["source"],
+          source_id: get_source_id(object["source"]),
+          author: object["author"],
+          title: object["title"],
+          description: object["description"] |> String.slice(0..250),
+          url: object["url"],
+          urlToImage: object["urlToImage"],
+          publishedAt: object["publishedAt"],
+          content: object["content"],
         }
       # Return errors if errors in the error list
       _ -> err_props.errors
