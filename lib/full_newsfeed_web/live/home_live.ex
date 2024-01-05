@@ -233,6 +233,22 @@ defmodule FullNewsfeedWeb.HomeLive do
     body |> Bank.new()
   end
 
+  def fetch_market_news do
+    {:ok, resp} =
+      Finch.build(
+        :get,
+        "https://eodhd.com/api/news?s=AAPL.US&offset=0&limit=10&api_token=#{System.fetch_env!("MARKET_NEWS_API_KEY")}&fmt=json",
+        [{"Accept", "application/json"}]
+        )
+        |> Finch.request(FullNewsfeed.Finch)
+
+    IO.inspect(resp, label: "Resp")
+
+    {:ok, body} = Jason.decode(resp.body)
+    IO.inspect(body, label: "Body")
+    body |> MarketHeadlineList.new()
+  end
+
   def fetch_beer do
     {:ok, resp} =
       Finch.build(

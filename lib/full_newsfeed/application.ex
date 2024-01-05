@@ -19,7 +19,7 @@ defmodule FullNewsfeed.Application do
       # Start the Endpoint (http/https)
       FullNewsfeedWeb.Endpoint,
       Supervisor.child_spec({FullNewsfeed.Servers.MessageServer,  [:message_server, []]}, id: :message_server),
-
+      Supervisor.child_spec({FullNewsfeed.Servers.Scheduler,  [:scheduler, []]}, id: :scheduler)
       # FullNewsfeed.ThinWrapper,
       # {Task.Supervisor, name: FullNewsfeed.TaskSupervisor}
 
