@@ -65,16 +65,35 @@ defmodule FullNewsfeedWeb.MainComponents do
         <%= if @headlines_data do %>
           <h6>Headlines (<%= Enum.count(@headlines_data) %>) from (<%= Headline.display_source(List.first(@headlines_data).source_id) %>)</h6>
           <%= for headline <- @headlines_data do %>
-            <ul class="text-zinc-200 list-none text-sm dark:text-gray-400 border border-sky-800 my-4">
+          <div class="border border-sky-800">
+            <div class="border border-amber-700">
               <button
                 type="button"
                 phx-click="save_item"
                 phx-value-entity={:headline}
                 value={Enum.find_index(@headlines_data, fn hl -> hl == headline end)}
+                class="mx-4"
               ><CoreComponents.icon name="hero-star-solid" class="h-3 w-3" /></button>
-              <li><%= headline.title %></li>
-              <li>Author: <%= headline.author %></li>
-            </ul>
+              <button
+                type="button"
+                phx-click="save_item"
+                phx-value-entity={:headline}
+                value={Enum.find_index(@headlines_data, fn hl -> hl == headline end)}
+                class="mx-4"
+              ><CoreComponents.icon name="hero-arrow-up-circle-solid" class="h-3 w-3" /></button>
+            </div>
+            <div class="grid justify-center mx-auto text-center md:grid-cols-2 lg:grid-cols-2 gap-2 lg:gap-2 my-2">
+              <div class="basis-1/2 flex flex-col items-center justify-center">
+                <ul class="text-zinc-200 list-none text-sm dark:text-gray-400 my-4">
+                  <li><%= headline.title %></li>
+                  <li>Author: <%= headline.author %></li>
+                </ul>
+              </div>
+              <div class="basis-1/2 flex flex-col items-center justify-center">
+                <img src={headline.urlToImage} width="200" height="200"/>
+              </div>
+            </div>
+          </div>
           <% end %>
         <% end %>
       </div>
