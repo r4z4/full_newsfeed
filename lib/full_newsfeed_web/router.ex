@@ -70,6 +70,7 @@ defmodule FullNewsfeedWeb.Router do
       live "/user/settings/confirm_email/:token", UserSettingsLive, :confirm_email
 
       live "/home", HomeLive
+      live "/chat", ChatLive
     end
   end
 

@@ -4,8 +4,7 @@ services:
   db:
     hostname: db
     container_name: db-full_newsfeed
-    # image: ankane/pgvector:latest
-    image: postgis/postgis:15-3.4
+    image: ankane/pgvector:latest
     user: postgres
     environment:
       POSTGRES_USER: postgres
