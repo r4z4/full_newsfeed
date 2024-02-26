@@ -1,1 +1,1 @@
-Postgrex.Types.define(FanCan.PostgrexTypes, [Pgvector.Extensions.Vector] ++ Ecto.Adapters.Postgres.extensions(), [])
+Postgrex.Types.define(FullNewsfeed.PostgrexTypes, [Pgvector.Extensions.Vector] ++ Ecto.Adapters.Postgres.extensions(), [])

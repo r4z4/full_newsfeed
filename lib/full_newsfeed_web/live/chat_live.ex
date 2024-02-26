@@ -1,10 +1,12 @@
 defmodule FullNewsfeedWeb.ChatLive do
   use FullNewsfeedWeb, :live_view
+  alias FullNewsfeed.Entities.{Embedding, FinalData}
+  alias FullNewsfeed.Repo
   require Logger
 
   @impl true
   def mount(_params, _session, socket) do
-    Logger.info("Chat Live Socket = #{inspect socket}", ansi_color: :magenta)
+    Logger.info("This Process ->> #{inspect(self())}. Chat Live Socket = #{inspect socket}", ansi_color: :magenta)
 
     {:ok,
      socket
@@ -14,7 +16,9 @@ defmodule FullNewsfeedWeb.ChatLive do
      |> assign(:headlines_data, nil)
      |> assign(:current_request, nil)
      |> assign(:prompt, nil)
+     |> assign(:embedding, [])
      |> assign(:display, "")
+     |> assign(:final_data, nil)
      |> assign(:response, nil)
      |> assign(:beer_data, nil)}
   end
@@ -53,8 +57,21 @@ defmodule FullNewsfeedWeb.ChatLive do
       </Phoenix.Component.async_result>
 
       <div class="grid justify-center mx-auto w-full text-center md:grid-cols-3 lg:grid-cols-3 gap-2 lg:gap-2 my-10 text-white">
+        <h3>Embeddings</h3>
+        <p><%= assigns.embedding %></p>
+      </div>
+
+      <div class="grid justify-center mx-auto w-full text-center md:grid-cols-3 lg:grid-cols-3 gap-2 lg:gap-2 my-10 text-white">
         <p><%= assigns.display %></p>
       </div>
+
+      <div :if={assigns.final_data} class="grid justify-center mx-auto w-full text-center md:grid-cols-3 lg:grid-cols-3 gap-2 lg:gap-2 my-10 text-white" id="final_data_display">
+        <p>Model: <%= assigns.final_data.model %></p>
+        <p>Eval: <%= assigns.final_data.prompt_eval_duration %></p>
+        <p>Total: <%= assigns.final_data.total_duration %></p>
+      </div>
+
+      <.markdown text={@display} />
 
 
     </div>
@@ -80,21 +97,58 @@ defmodule FullNewsfeedWeb.ChatLive do
     </svg>
     """
   end
+
+  def markdown(assigns) do
+    text = if assigns.text == nil, do: "", else: assigns.text
+
+    markdown_html =
+      String.trim(text)
+      |> Earmark.as_html!(code_class_prefix: "lang- language-")
+      |> Phoenix.HTML.raw()
+
+    assigns = assign(assigns, :markdown, markdown_html)
+
+    ~H"""
+    <%= @markdown %>
+    """
+  end
   # When the client invokes the "prompt" event, create a streaming request and
   # asynchronously send messages back to self.
   @impl true
   def handle_event("prompt", %{"message" => prompt}, socket) do
-    {:ok, task} = Ollama.completion(Ollama.init(), [
+    ollama_client = Ollama.init()
+    {:ok, embedding} = Ollama.embeddings(ollama_client, [
+      model: "codellama",
+      prompt: prompt,
+    ])
+
+    {:ok, task} = Ollama.completion(ollama_client, [
       model: "codellama",
       prompt: prompt,
       stream: self(),
     ])
 
+    {:ok, json_embedding} = Jason.encode(embedding["embedding"])
+    Task.async(fn -> Repo.insert(%Embedding{user_id: socket.assigns.current_user.id, embedding: embedding["embedding"]}) end)
+
     {:noreply,
       socket
       |> assign(current_request: task)
+      |> assign(embedding: json_embedding)
       |> assign(display: "")
     }
+  end
+
+  @impl true
+  def handle_info({_pid, {:ok, _embedding = %Embedding{}}}, socket) do
+    IO.puts("DB Operation has completed")
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:DOWN, _reference, _process, _pid, _status}, socket) do
+    IO.puts("Down Received. Task Destroyed.")
+    {:noreply, socket}
   end
 
   # The streaming request sends messages back to the LiveView process.
@@ -103,9 +157,9 @@ defmodule FullNewsfeedWeb.ChatLive do
     pid = socket.assigns.current_request.pid
     case message do
       {^pid, {:data, %{"done" => false} = data}} ->
-        IO.inspect(data, label: "Data")
-        IO.puts("handle each streaming chunk")
         display = socket.assigns.display <> to_string(data["response"])
+        IO.inspect(data, label: "Streaming Data")
+        IO.puts("handle each streaming chunk")
         {:noreply,
           socket
             |> assign_async(:response, fn ->
@@ -115,8 +169,17 @@ defmodule FullNewsfeedWeb.ChatLive do
         }
 
       {^pid, {:data, %{"done" => true} = data}} ->
+        display = socket.assigns.display <> to_string(data["response"])
+        IO.inspect(data, label: "Final Data")
         IO.puts("handle the final streaming chunk")
-        {:noreply, socket}
+        {:noreply,
+          socket
+            |> assign_async(:response, fn ->
+              {:ok, %{response: to_string(data["response"])}}
+            end)
+            |> assign(display: display)
+            |> assign(final_data: %FinalData{total_duration: data["total_duration"], prompt_eval_duration: data["prompt_eval_duration"], model: data["model"], eval_duration: data["eval_duration"]})
+        }
 
       {_pid, _data} ->
         IO.puts("this message was not expected!")

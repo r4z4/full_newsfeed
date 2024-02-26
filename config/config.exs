@@ -16,6 +16,8 @@ config :full_newsfeed, FullNewsfeed.Repo, migration_primary_key: [type: :identit
 #   updated_at: :changed_at
 # ]
 
+config :full_newsfeed, FullNewsfeed.Repo, types: FullNewsfeed.PostgrexTypes
+
 config :full_newsfeed,
   ecto_repos: [FullNewsfeed.Repo]
 

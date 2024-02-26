@@ -55,7 +55,8 @@ defmodule FullNewsfeed.MixProject do
       {:dotenv_parser, "~> 2.0"},
       {:uuidv7, "~> 0.2"},
       {:plug_cowboy, "~> 2.5"},
-      {:ollama, "0.5.1"}
+      {:ollama, "0.5.1"},
+      {:earmark, "~> 1.4"}
     ]
   end
 
