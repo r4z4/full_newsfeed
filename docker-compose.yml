@@ -4,7 +4,9 @@ services:
   db:
     hostname: db
     container_name: db-full_newsfeed
-    image: ankane/pgvector:latest
+    build:
+      context: .
+      dockerfile: postgres.Dockerfile
     user: postgres
     environment:
       POSTGRES_USER: postgres

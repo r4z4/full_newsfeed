@@ -3,6 +3,7 @@
         "codellama",
         "demonitor",
         "downvote",
+        "hnsw",
         "Newsfeed",
         "Ollama",
         "upvote"

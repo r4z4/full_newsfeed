@@ -2,7 +2,20 @@ defmodule FullNewsfeedWeb.ChatLive do
   use FullNewsfeedWeb, :live_view
   alias FullNewsfeed.Entities.{Embedding, FinalData}
   alias FullNewsfeed.Repo
+  import Ecto.Query
+  import Pgvector.Ecto.Query
   require Logger
+
+  def get_similars(user_id) do
+    query = Ecto.Query.from(e in Embedding, where: e.user_id == ^user_id, order_by: [desc: e.inserted_at], limit: 1)
+    most_recent = Repo.one(query)
+    if most_recent do
+      emb = most_recent.embedding
+      Repo.all(from e in Embedding, order_by: l2_distance(e.embedding, ^emb), limit: 5)
+    else
+      nil
+    end
+  end
 
   @impl true
   def mount(_params, _session, socket) do
@@ -20,6 +33,7 @@ defmodule FullNewsfeedWeb.ChatLive do
      |> assign(:display, "")
      |> assign(:final_data, nil)
      |> assign(:response, nil)
+     |> assign(:similars, get_similars(socket.assigns.current_user.id))
      |> assign(:beer_data, nil)}
   end
 
@@ -129,12 +143,13 @@ defmodule FullNewsfeedWeb.ChatLive do
     ])
 
     {:ok, json_embedding} = Jason.encode(embedding["embedding"])
-    Task.async(fn -> Repo.insert(%Embedding{user_id: socket.assigns.current_user.id, embedding: embedding["embedding"]}) end)
+    Task.async(fn -> Repo.insert(%Embedding{user_id: socket.assigns.current_user.id, embedding: embedding["embedding"]}, prompt: prompt) end)
 
     {:noreply,
       socket
       |> assign(current_request: task)
       |> assign(embedding: json_embedding)
+      |> assign(final_data: nil)
       |> assign(display: "")
     }
   end
