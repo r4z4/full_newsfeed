@@ -9,6 +9,7 @@ defmodule FullNewsfeed.Entities.Embedding do
   @foreign_key_type :integer
   schema "embedding" do
     field :embedding, Pgvector.Ecto.Vector
+    field :prompt, :string
     field :user_id, :integer
     field :inserted_at, :naive_datetime
   end

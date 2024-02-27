@@ -6,20 +6,28 @@ defmodule FullNewsfeedWeb.ChatLive do
   import Pgvector.Ecto.Query
   require Logger
 
-  def get_similars(user_id) do
-    query = Ecto.Query.from(e in Embedding, where: e.user_id == ^user_id, order_by: [desc: e.inserted_at], limit: 1)
-    most_recent = Repo.one(query)
-    if most_recent do
-      emb = most_recent.embedding
-      Repo.all(from e in Embedding, order_by: l2_distance(e.embedding, ^emb), limit: 5)
+  def get_similars(%{user_id: user_id, embedding: embedding}) do
+    if embedding do
+      {:ok, %{similars: Repo.all(from e in Embedding, order_by: l2_distance(e.embedding, ^embedding), limit: 5)}}
     else
-      nil
+      query = Ecto.Query.from(e in Embedding, where: e.user_id == ^user_id, order_by: [desc: e.inserted_at], limit: 1)
+      most_recent = Repo.one(query)
+      if most_recent do
+        emb = most_recent.embedding
+        {:ok, %{similars: Repo.all(from e in Embedding, order_by: l2_distance(e.embedding, ^emb), limit: 5)}}
+      else
+        {:ok, %{similars: nil}}
+      end
     end
   end
+
+
 
   @impl true
   def mount(_params, _session, socket) do
     Logger.info("This Process ->> #{inspect(self())}. Chat Live Socket = #{inspect socket}", ansi_color: :magenta)
+
+    Task.async(fn -> get_similars(%{user_id: socket.assigns.current_user.id, embedding: nil}) end)
 
     {:ok,
      socket
@@ -33,7 +41,7 @@ defmodule FullNewsfeedWeb.ChatLive do
      |> assign(:display, "")
      |> assign(:final_data, nil)
      |> assign(:response, nil)
-     |> assign(:similars, get_similars(socket.assigns.current_user.id))
+     |> assign(:similars, nil)
      |> assign(:beer_data, nil)}
   end
 
@@ -44,7 +52,12 @@ defmodule FullNewsfeedWeb.ChatLive do
       <.header class="text-center">
         Hello <%= assigns.current_user.username %> || Welcome to Chat Live
       </.header>
-
+      <h4>Here are some similar searches other users have done - based on your latest query</h4>
+      <div :if={@similars} class="grid justify-center mx-auto w-full text-center md:grid-cols-3 lg:grid-cols-3 gap-2 lg:gap-2 my-10 text-white" id="final_data_display">
+        <%= for similar <- @similars do %>
+          <p><%= similar.prompt %></p>
+        <% end %>
+      </div>
       <form phx-submit="prompt" class="m-0 flex space-x-2">
         <input
           class="block w-full p-2.5 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500"
@@ -143,12 +156,17 @@ defmodule FullNewsfeedWeb.ChatLive do
     ])
 
     {:ok, json_embedding} = Jason.encode(embedding["embedding"])
-    Task.async(fn -> Repo.insert(%Embedding{user_id: socket.assigns.current_user.id, embedding: embedding["embedding"]}, prompt: prompt) end)
+
+    Task.async(fn -> get_similars(%{user_id: nil, embedding: embedding["embedding"]}) end)
+    Task.async(fn -> Repo.insert(%Embedding{user_id: socket.assigns.current_user.id, embedding: embedding["embedding"], prompt: prompt}) end)
+
+    IO.inspect(prompt, label: "Prompt")
 
     {:noreply,
       socket
       |> assign(current_request: task)
       |> assign(embedding: json_embedding)
+      |> assign(similars: nil)
       |> assign(final_data: nil)
       |> assign(display: "")
     }
@@ -159,6 +177,16 @@ defmodule FullNewsfeedWeb.ChatLive do
     IO.puts("DB Operation has completed")
     {:noreply, socket}
   end
+
+  @impl true
+  def handle_info({_pid, {:ok, %{similars: similars}}}, socket) do
+    IO.puts("Similars Received")
+    {:noreply,
+      socket
+      |> assign(similars: similars)
+    }
+  end
+
 
   @impl true
   def handle_info({:DOWN, _reference, _process, _pid, _status}, socket) do
@@ -173,8 +201,8 @@ defmodule FullNewsfeedWeb.ChatLive do
     case message do
       {^pid, {:data, %{"done" => false} = data}} ->
         display = socket.assigns.display <> to_string(data["response"])
-        IO.inspect(data, label: "Streaming Data")
-        IO.puts("handle each streaming chunk")
+        # IO.inspect(data, label: "Streaming Data")
+        # IO.puts("handle each streaming chunk")
         {:noreply,
           socket
             |> assign_async(:response, fn ->

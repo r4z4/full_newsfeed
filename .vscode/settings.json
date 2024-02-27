@@ -6,6 +6,7 @@
         "hnsw",
         "Newsfeed",
         "Ollama",
+        "similars",
         "upvote"
     ]
 }
