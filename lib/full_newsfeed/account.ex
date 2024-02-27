@@ -76,9 +76,10 @@ defmodule FullNewsfeed.Account do
 
   """
   def register_user(attrs) do
+    IO.inspect(attrs, label: "Attrs")
     %User{}
     |> User.registration_changeset(attrs)
-    |> Repo.insert()
+    |> Repo.insert(returning: true)
   end
 
   @doc """

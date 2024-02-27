@@ -20,6 +20,7 @@ defmodule FullNewsfeed.AccountFixtures do
       |> valid_user_attributes()
       |> FullNewsfeed.Account.register_user()
 
+    IO.inspect(user, label: "Test User Being Returned")
     user
   end
 

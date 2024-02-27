@@ -2,11 +2,12 @@ defmodule FullNewsfeed.Account.User do
   use Ecto.Schema
   import Ecto.Changeset
   alias FullNewsfeed.Core.Utils
+  alias __MODULE__
 
   @primary_key {:id, :integer, autogenerate: false}
   @foreign_key_type :integer
   schema "user" do
-    field :slug, :binary_id
+    field :slug, :binary_id, default: Ecto.UUID.generate()
     field :email, :string
     field :username, :string
     field :role, Ecto.Enum, values: Utils.roles
