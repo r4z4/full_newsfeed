@@ -14,6 +14,7 @@ defmodule FullNewsfeed.Entities.Headline do
     field :source_id, :integer
     field :author, :string
     field :title, :string
+    field :title_vec, Pgvector.Ecto.Vector
     field :description, :string
     field :url, :string
     field :urlToImage, :string

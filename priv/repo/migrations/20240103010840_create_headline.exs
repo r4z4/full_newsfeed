@@ -7,6 +7,7 @@ defmodule FullNewsfeed.Repo.Migrations.CreateHeadline do
       add :source_id, :integer, null: false
       add :author, :string, null: true
       add :title, :string, null: true
+      add :title_vec, :vector
       add :description, :string, null: true
       add :url, :string, null: true
       add :urlToImage, :string, null: true

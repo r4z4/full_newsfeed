@@ -6,6 +6,8 @@ defmodule FullNewsfeedWeb.ChatLive do
   import Pgvector.Ecto.Query
   require Logger
 
+  @model "codellama"
+
   def get_similars(%{user_id: user_id, embedding: embedding}) do
     if embedding do
       {:ok, %{similars: Repo.all(from e in Embedding, order_by: l2_distance(e.embedding, ^embedding), limit: 5)}}
@@ -146,12 +148,12 @@ defmodule FullNewsfeedWeb.ChatLive do
   def handle_event("prompt", %{"message" => prompt}, socket) do
     ollama_client = Ollama.init()
     {:ok, embedding} = Ollama.embeddings(ollama_client, [
-      model: "codellama",
+      model: @model,
       prompt: prompt,
     ])
 
     {:ok, task} = Ollama.completion(ollama_client, [
-      model: "codellama",
+      model: @model,
       prompt: prompt,
       stream: self(),
     ])

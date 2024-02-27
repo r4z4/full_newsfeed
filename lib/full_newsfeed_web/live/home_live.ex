@@ -16,6 +16,8 @@ defmodule FullNewsfeedWeb.HomeLive do
   alias FullNewsfeed.Entities.HeadlineList
   alias FullNewsfeed.Core.{Utils, Hold}
 
+  @model "codellama"
+
   # defp get_favorites(holds) do
   #   # IO.inspect(holds, label: "holds")
   #   all_holds = holds.candidate_holds ++ holds.user_holds ++ holds.election_holds ++ holds.race_holds ++ holds.post_holds ++ holds.thread_holds
@@ -95,7 +97,7 @@ defmodule FullNewsfeedWeb.HomeLive do
   #   FullNewsfeedWeb.Endpoint.subscribe(@addrs)
   # end
 
-  defp sub_and_add(hold_cat, socket) do
+  defp sub_and_add(hold_cat, _socket) do
     case Kernel.elem(hold_cat, 0) do
       :bank_holds -> TopicHelpers.subscribe_to_holds("bank", Kernel.elem(hold_cat, 1) |> Enum.map(fn h -> h.id end))
       :beer_holds -> TopicHelpers.subscribe_to_holds("beer", Kernel.elem(hold_cat, 1) |> Enum.map(fn h -> h.id end))
@@ -105,10 +107,11 @@ defmodule FullNewsfeedWeb.HomeLive do
 
   defp get_favorites(holds) do
     # IO.inspect(holds, label: "holds")
-    all_holds = holds.candidate_holds ++ holds.user_holds ++ holds.election_holds ++ holds.race_holds ++ holds.post_holds ++ holds.thread_holds
+    _all_holds = holds.candidate_holds ++ holds.user_holds ++ holds.election_holds ++ holds.race_holds ++ holds.post_holds ++ holds.thread_holds
     |> Enum.filter(fn x -> x.type == :favorite end)
   end
 
+  @impl true
   def mount(_params, _session, socket) do
     IO.inspect(socket, label: "Socket")
     # Send to ETS table vs storing in socket
@@ -302,7 +305,21 @@ defmodule FullNewsfeedWeb.HomeLive do
     attrs = %{slug: UUID.generate(), user_id: user_id, hold_cat: entity_atom, type: :favorite, hold_cat_id: 1, active: true, updated_at: nil}
     changeset = Hold.changeset(%Hold{}, attrs)
     # If its a list, need to get individual struct out, based on index. Which FIXME- don't use index. Use KV.
-    struct = if idx, do: Enum.at(struct, idx), else: struct
+    struct =
+      if idx do
+        IO.puts("Index Present")
+        chosen = Enum.at(struct, idx)
+        IO.inspect(chosen, label: "chosen")
+        ollama_client = Ollama.init()
+        {:ok, embedding} = Ollama.embeddings(ollama_client, [
+          model: @model,
+          prompt: chosen.title,
+        ])
+        new = %Headline{chosen | title_vec: embedding["embedding"]}
+        IO.inspect(new, label: "new")
+      else
+        struct
+      end
     existing = find_existing(struct, entity_atom)
     IO.inspect(existing, label: "existing")
     entity_id =
@@ -314,7 +331,7 @@ defmodule FullNewsfeedWeb.HomeLive do
           hl.id
         _   -> existing.id
       end
-    IO.inspect(entity_id)
+    IO.inspect(entity_id, label: "Entity ID")
     # Topics for PubSub
     new_topic = Atom.to_string(entity_atom) <> "_" <> Integer.to_string(entity_id)
     # Check for existing. Then update/create_new
