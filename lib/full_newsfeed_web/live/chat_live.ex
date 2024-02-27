@@ -12,6 +12,7 @@ defmodule FullNewsfeedWeb.ChatLive do
     else
       query = Ecto.Query.from(e in Embedding, where: e.user_id == ^user_id, order_by: [desc: e.inserted_at], limit: 1)
       most_recent = Repo.one(query)
+      IO.inspect(most_recent, label: "Most Recent")
       if most_recent do
         emb = most_recent.embedding
         {:ok, %{similars: Repo.all(from e in Embedding, order_by: l2_distance(e.embedding, ^emb), limit: 5)}}
@@ -52,7 +53,7 @@ defmodule FullNewsfeedWeb.ChatLive do
       <.header class="text-center">
         Hello <%= assigns.current_user.username %> || Welcome to Chat Live
       </.header>
-      <h4>Here are some similar searches other users have done - based on your latest query</h4>
+      <h4 class="justify-center mx-auto w-full text-center my-2 text-white">Here are some similar searches other users have done - based on your latest query</h4>
       <div :if={@similars} class="grid justify-center mx-auto w-full text-center md:grid-cols-3 lg:grid-cols-3 gap-2 lg:gap-2 my-10 text-white" id="final_data_display">
         <%= for similar <- @similars do %>
           <p><%= similar.prompt %></p>
@@ -83,12 +84,12 @@ defmodule FullNewsfeedWeb.ChatLive do
         <span class="text-gray-900 font-medium"><%= response %></span>
       </Phoenix.Component.async_result>
 
-      <div class="grid justify-center mx-auto w-full text-center md:grid-cols-3 lg:grid-cols-3 gap-2 lg:gap-2 my-10 text-white">
+      <div class="justify-center mx-auto my-4 w-full text-center text-white">
         <h3>Embeddings</h3>
         <p><%= assigns.embedding %></p>
       </div>
 
-      <div class="grid justify-center mx-auto w-full text-center md:grid-cols-3 lg:grid-cols-3 gap-2 lg:gap-2 my-10 text-white">
+      <div class="justify-center mx-auto my-4 w-full text-center text-white">
         <p><%= assigns.display %></p>
       </div>
 

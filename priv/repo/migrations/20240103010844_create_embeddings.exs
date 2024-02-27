@@ -4,8 +4,9 @@ defmodule FullNewsfeed.Repo.Migrations.CreateEmbedding do
   # execute "CREATE INDEX ON embedding USING hnsw (embedding vector_l2_ops) WITH (m = 4, ef_construction = 10);"
 
   def change do
-    create table(:embedding, primary_key: true) do
+    create table(:embedding, primary_key: false) do
       # add :source, :jsonb, null: false
+      add :id, :"bigint GENERATED ALWAYS AS IDENTITY"
       add :embedding, :vector, size: 4096
       add :prompt, :text
       add :user_id, references(:user, type: :identity, on_delete: :delete_all), null: false
